@@ -1,4 +1,5 @@
 const express = require('express');
+const cors = require('cors');
 const connectDB = require('./config/db.js');
 const path = require('path');
 
@@ -9,6 +10,15 @@ connectDB();
 
 //Init Middleware
 app.use(express.json({ extended: false }));
+// app.use(function (req, res, next) {
+//     res.header('Access-Control-Allow-Origin', 'https://otsregister.netlify.app');
+//     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+//     next();
+// });
+
+// app.get('/', (req, res) => {
+//     res.send('API Running');
+// });
 
 app.use(
     cors({
