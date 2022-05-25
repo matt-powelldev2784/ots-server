@@ -20,9 +20,9 @@ router.post(
     [
         auth,
         [
-            check('gameDate', 'Game Date is a required field').not().isEmpty(),
+            check('gameDate', 'Error. Game Date is a required field').not().isEmpty(),
             //check('gameDate', 'Game Date should be valid date string i.e 2022-12-25').isISO8601(),
-            check('gameName', 'Game Name is a required field').not().isEmpty()
+            check('gameName', 'Error. Game Name is a required field').not().isEmpty()
         ]
     ],
     async (req, res) => {
@@ -51,7 +51,63 @@ router.post(
             return res.status(401).json({ msg: 'Your user is not authorized to create a new match day' });
         } catch (err) {
             console.error(err);
-            res.status(500).send('Server Error. Unhandled error at api route /games/creategame');
+            return res.status(500).send({ msg: 'Server Error. Unhandled error at api route /games/creategame' });
+        }
+    }
+);
+
+//---------------------------------------------------------------------
+// @ route          POST api/games/deletegame
+// @ description    Delete game
+// @ access         Private
+router.delete(
+    '/deletegame',
+    [
+        auth,
+        [
+            check('gameId', 'Error. Game not found! Please proivide valid game id.').not().isEmpty(),
+            check('gameId', 'Error. Invalid gameId. The objectID for the game is not found').custom((value, { req }) => {
+                return mongoose.Types.ObjectId.isValid(value) === true;
+            })
+        ]
+    ],
+    async (req, res) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        try {
+            const gameId = req.body.gameId;
+
+            const gameDetails = await Game.findById(gameId);
+            if (!gameDetails) {
+                return res.json({ msg: 'gameDetails not found. Please provide valid objectId for the game.' });
+            }
+
+            const user = await User.findById(req.user.id).select('-password').select('-date');
+            if (!user) {
+                return res.json({ msg: 'User not found. Please ensure active user is logged in' });
+            }
+
+            if (!user.admin) {
+                return res.status(401).json({ msg: 'User not authorised' });
+            }
+
+            if (user.admin) {
+                if (user.admin) {
+                    await Game.findByIdAndRemove(gameId);
+                    return res.json({
+                        msg: 'The following game has been deleted:',
+                        gameName: gameDetails.gameName,
+                        gameDate: gameDetails.gameDate
+                    });
+                }
+            }
+            return res.status(401).json({ msg: 'Unable to delete game' });
+        } catch (err) {
+            console.error(err);
+            res.status(500).send('Server Error. Unhandled error at api route /games/deletegame');
         }
     }
 );
@@ -96,12 +152,12 @@ router.post(
     [
         auth,
         [
-            check('gameId', 'gameId not found! Please proivide valid game id.').not().isEmpty(),
-            check('gameId', 'Invalid gameId. The objectID for the game is not found').custom((value, { req }) => {
+            check('gameId', 'Error. gameId not found! Please proivide valid game id.').not().isEmpty(),
+            check('gameId', 'Error. Invalid gameId. The objectID for the game is not found').custom((value, { req }) => {
                 return mongoose.Types.ObjectId.isValid(value) === true;
             }),
-            check('playerAvailable', 'playerAvailable is a required field. Please supply a true or false value.').not().isEmpty(),
-            check('playerAvailable', 'playerAvailable should be boolean. Please supply a true or false value.').isBoolean()
+            check('playerAvailable', 'Error. playerAvailable is a required field. Please supply a true or false value.').not().isEmpty(),
+            check('playerAvailable', 'Error. playerAvailable should be boolean. Please supply a true or false value.').isBoolean()
         ]
     ],
     async (req, res) => {
@@ -166,8 +222,8 @@ router.post(
     [
         auth,
         [
-            check('gameId', 'Game not found! Please proivide valid game id.').not().isEmpty(),
-            check('gameId', 'Invalid gameId. The objectID for the game is not found').custom((value, { req }) => {
+            check('gameId', 'Error. Game not found! Please proivide valid game id.').not().isEmpty(),
+            check('gameId', 'Error. Invalid gameId. The objectID for the game is not found').custom((value, { req }) => {
                 return mongoose.Types.ObjectId.isValid(value) === true;
             })
         ]
@@ -216,9 +272,9 @@ router.post(
     [
         auth,
         [
-            check('gameId', 'Game not found! Please proivide valid game id.').not().isEmpty(),
-            check('gameClosed', 'gameClosed is a required field. Please specify true or false').not().isEmpty().isBoolean(),
-            check('gameId', 'Invalid gameId. The objectID for the game is not found').custom((value, { req }) => {
+            check('gameId', 'Error. Game not found! Please proivide valid game id.').not().isEmpty(),
+            check('gameClosed', 'Error. gameClosed is a required field. Please specify true or false').not().isEmpty().isBoolean(),
+            check('gameId', 'Error. Invalid gameId. The objectID for the game is not found').custom((value, { req }) => {
                 return mongoose.Types.ObjectId.isValid(value) === true;
             })
         ]
@@ -268,7 +324,7 @@ router.post(
 // @ access         Private
 router.post(
     '/playerstatus',
-    [auth, [check('gameId', 'Game not found! Please proivide valid game id.').not().isEmpty()]],
+    [auth, [check('gameId', 'Error. Game not found! Please proivide valid game id.').not().isEmpty()]],
     async (req, res) => {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
@@ -328,7 +384,7 @@ router.post(
             return res.json(playerAndGame);
         } catch (err) {
             console.error(err);
-            res.status(500).send('Server Error. Unhandled error at api route /games/creategame');
+            res.status(500).send('Server Error. Unhandled error at api route /games/playerStatus');
         }
     }
 );
@@ -342,11 +398,11 @@ router.post(
     [
         auth,
         [
-            check('gameId', 'Game not found! Please proivide valid game id.').not().isEmpty(),
-            check('gameId', 'Invalid gameId. The objectID for the game is not found').custom((value, { req }) => {
+            check('gameId', 'Error. Game not found! Please proivide valid game id.').not().isEmpty(),
+            check('gameId', 'Error. Invalid gameId. The objectID for the game is not found').custom((value, { req }) => {
                 return mongoose.Types.ObjectId.isValid(value) === true;
             }),
-            check('finalTeam', 'finalTeam must not be empty and must be an array.').not().isEmpty().isArray()
+            check('finalTeam', 'Error. finalTeam must not be empty and must be an array.').not().isEmpty().isArray()
         ]
     ],
     async (req, res) => {
@@ -388,6 +444,77 @@ router.post(
         } catch (err) {
             console.error(err);
             res.status(500).send('Server Error. Unhandled error at api route /games/gameavailibility');
+        }
+    }
+);
+
+router.get(
+    '/test',
+    [auth, [check('gameId', 'Error. Game not found! Please proivide valid game id.').not().isEmpty()]],
+    async (req, res) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        try {
+            const { gameId, available } = req.body;
+            const user = await User.findById(req.user.id).select('-password').select('-date');
+            const userId = user._id.toString();
+
+            const profile = await Profile.findOne({ user: req.user.id }).populate('user', ['name', 'email']);
+            if (!user) {
+                return res.json({ msg: 'Profile not found. Please ensure active user is logged in' });
+            }
+
+            //await Game.find(gameId, { $pull: { playersAvailable: userProfileAvialable } });
+            //const test = await Game.find({ _id: { $eq: gameId } });
+            //const test = await Game.find({ $and: [{ _id: { $eq: gameId } }] });
+            //const test = await Game.find({ playersAvailable: { $elemMatch: { _id: ObjectId('62449c1d9f14781507828bbf') } } });
+            //const test = await Game.find({
+            // $and: [{ _id: { $eq: gameId } }, { playersAvailable: { $elemMatch: { _id: ObjectId('62449c209f14781507828bc8') } } }]
+            //});
+            //const test = await Game.find({
+            //    $and: [{ _id: { $eq: gameId } }, { playersAvailable: { $elemMatch: { _id: ObjectId(userId) } } }]
+            //});
+            // const test2 = await Game.findByIdAndUpdate(gameId, {
+            //     $cond: {
+            //         if: { playersAvailable:  { _id: ObjectId(userId) }  },
+            //         then: { $pull: { playersAvailable: { _id: ObjectId(userId) } } },
+            //         else: { $pull: { playersAvailable: { _id: ObjectId(userId) } } }
+            //     }
+            // });
+
+            const test = await Game.find({
+                $and: [
+                    { _id: { $eq: gameId } },
+                    {
+                        $or: [
+                            { playersAvailable: { $elemMatch: { _id: ObjectId(userId) } } },
+                            { playersUnavailable: { $elemMatch: { _id: ObjectId(userId) } } }
+                        ]
+                    }
+                ]
+            });
+
+            // const playerAvailable = await Game.findByIdAndUpdate(gameId, {
+            //     $cond: { if: { playersAvailable: { $elemMatch: { _id: ObjectId(userId) } } } }
+            // });
+
+            const test2 = await Game.find()
+                .where('playerAvailable')
+                .equals({ _id: ObjectId(userId) });
+
+            //const test2 = await Game.findByIdAndUpdate(gameId, { $pull: { playersAvailable: { _id: ObjectId(userId) } } });
+
+            //const gameDetails = await Game.find({ gameDate: { $gte: last14Days, $lte: forward1Year } }).sort('-gameDate');
+
+            return res.json({
+                test2
+            });
+        } catch (err) {
+            console.error(err);
+            res.status(500).send('Server Error. Unhandled error at api route /games/test');
         }
     }
 );
