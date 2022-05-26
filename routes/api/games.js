@@ -60,57 +60,45 @@ router.post(
 // @ route          POST api/games/deletegame
 // @ description    Delete game
 // @ access         Private
-router.delete(
-    '/deletegame',
-    [
-        auth,
-        [
-            check('gameId', 'Error. Game not found! Please proivide valid game id.').not().isEmpty(),
-            check('gameId', 'Error. Invalid gameId. The objectID for the game is not found').custom((value, { req }) => {
-                return mongoose.Types.ObjectId.isValid(value) === true;
-            })
-        ]
-    ],
-    async (req, res) => {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
-        }
-
-        try {
-            const gameId = req.body.gameId;
-
-            const gameDetails = await Game.findById(gameId);
-            if (!gameDetails) {
-                return res.json({ msg: 'gameDetails not found. Please provide valid objectId for the game.' });
-            }
-
-            const user = await User.findById(req.user.id).select('-password').select('-date');
-            if (!user) {
-                return res.json({ msg: 'User not found. Please ensure active user is logged in' });
-            }
-
-            if (!user.admin) {
-                return res.status(401).json({ msg: 'User not authorised' });
-            }
-
-            if (user.admin) {
-                if (user.admin) {
-                    await Game.findByIdAndRemove(gameId);
-                    return res.json({
-                        msg: 'The following game has been deleted:',
-                        gameName: gameDetails.gameName,
-                        gameDate: gameDetails.gameDate
-                    });
-                }
-            }
-            return res.status(401).json({ msg: 'Unable to delete game' });
-        } catch (err) {
-            console.error(err);
-            res.status(500).send('Server Error. Unhandled error at api route /games/deletegame');
-        }
+router.delete('/deletegame/:id', [auth, []], async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
     }
-);
+
+    try {
+        const gameId = req.params.id;
+
+        const gameDetails = await Game.findById(gameId);
+        if (!gameDetails) {
+            return res.json({ msg: 'gameDetails not found. Please provide valid objectId for the game.' });
+        }
+
+        const user = await User.findById(req.user.id).select('-password').select('-date');
+        if (!user) {
+            return res.json({ msg: 'User not found. Please ensure active user is logged in' });
+        }
+
+        if (!user.admin) {
+            return res.status(401).json({ msg: 'User not authorised' });
+        }
+
+        if (user.admin) {
+            if (user.admin) {
+                await Game.findByIdAndRemove(gameId);
+                return res.json({
+                    msg: 'The following game has been deleted:',
+                    gameName: gameDetails.gameName,
+                    gameDate: gameDetails.gameDate
+                });
+            }
+        }
+        return res.status(401).json({ msg: 'Unable to delete game' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error. Unhandled error at api route /games/deletegame');
+    }
+});
 
 //---------------------------------------------------------------------
 // @ route          GET api/games/recentgames
@@ -447,6 +435,11 @@ router.post(
         }
     }
 );
+
+//---------------------------------------------------------------------
+// @ route          POST api/games/tesdt
+// @ description    test
+// @ access         Private
 
 router.get(
     '/test',
