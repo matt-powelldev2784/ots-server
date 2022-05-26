@@ -8,6 +8,8 @@ connectDB();
 
 //Init Middleware
 app.use(express.json({ extended: false }));
+const bodyParser = require('body-parser');
+app.use(bodyParser.json());
 
 app.use(
     cors({
