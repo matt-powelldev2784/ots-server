@@ -20,6 +20,8 @@ app.use('/api/users', require('./routes/api/users'));
 app.use('/api/auth', require('./routes/api/auth'));
 app.use('/api/profile', require('./routes/api/profile'));
 app.use('/api/games', require('./routes/api/games'));
+app.use('/api/player', require('./routes/api/player'));
+app.use('/api/test', require('./routes/api/test'));
 
 app.use(express.static(path.join(__dirname, '../client/build')));
 
