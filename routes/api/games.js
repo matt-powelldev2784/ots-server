@@ -228,10 +228,10 @@ router.post(
                 return res.status(401).json({ msg: 'User not authorised' });
             }
 
-            return res.status(500).json({ msg: 'Unable to retrieve game at api route /games/closegame' });
+            return res.status(500).json({ msg: 'Unable to retrieve game at api route /games/setgameregister' });
         } catch (err) {
             console.error(err);
-            res.status(500).send('Server Error. Unhandled error at api route /games/closegame');
+            res.status(500).send('Server Error. Unhandled error at api route /games/setgameregister');
         }
     }
 );
