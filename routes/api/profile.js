@@ -6,6 +6,8 @@ const { check, validationResult } = require('express-validator');
 const Profile = require('../../models/Profile');
 const User = require('../../models/User');
 const res = require('express/lib/response');
+const { validateProfile } = require('../../middleware/profileValidation');
+const { validationErrors } = require('../../middleware/validationErrors');
 
 //---------------------------------------------------------------------
 // @ route          GET api/profile/me
@@ -16,7 +18,7 @@ router.get('/me', auth, async (req, res) => {
         const profile = await Profile.findOne({ user: req.user.id }).populate('user', ['name', 'email']);
 
         if (!profile) {
-            return res.status(400).json({ errors: [{ msg: 'Please fill in profile information' }] });
+            return res.status(400).json({ errors: [{ msg: 'Unable to retrieve profile' }] });
         }
 
         res.json(profile);
@@ -30,43 +32,28 @@ router.get('/me', auth, async (req, res) => {
 // @ route          POST api/profile
 // @ description    Create or update user profile
 // @ access         Private
-router.post(
-    '/',
-    [
-        auth,
-        [
-            check('defaultTeam', 'Please include a default team').not().isEmpty(),
-            check('position', 'Please include a default position').not().isEmpty()
-        ]
-    ],
-    async (req, res) => {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
-        }
+router.post('/', [auth, validateProfile, validationErrors], async (req, res) => {
+    const { defaultTeam, position } = req.body;
+    const profileData = { user: req.user.id, defaultTeam, position };
 
-        const { defaultTeam, position } = req.body;
-        const profileFields = { user: req.user.id, defaultTeam, position };
+    try {
+        let profile = await Profile.findOne({ user: req.user.id });
 
-        try {
-            let profile = await Profile.findOne({ user: req.user.id });
-
-            if (profile) {
-                profile = await Profile.findOneAndUpdate({ user: req.user.id }, { $set: profileFields }, { new: true });
-                return res.json(profile);
-            }
-
-            profile = new Profile(profileFields);
-            await profile.save();
+        if (profile) {
+            profile = await Profile.findOneAndUpdate({ user: req.user.id }, { $set: profileData }, { new: true });
             return res.json(profile);
-        } catch (err) {
-            console.error(err);
-            res.status(500).send('Server Error');
         }
 
-        res.status(200).send('Success');
+        profile = new Profile(profileData);
+        await profile.save();
+        return res.json(profile);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error');
     }
-);
+
+    res.status(200).send('Success');
+});
 
 //---------------------------------------------------------------------
 // @ route          GET api/profile
@@ -88,9 +75,8 @@ router.get('/', auth, async (req, res) => {
 // @ access         Private
 router.delete('/', auth, async (req, res) => {
     try {
-        //Remove profile
         await Profile.findOneAndRemove({ user: req.user.id });
-        //Remove User
+
         await User.findOneAndRemove({ _id: req.user.id });
 
         res.json({ msg: 'User deleted' });
