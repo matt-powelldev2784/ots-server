@@ -10,9 +10,7 @@ const {
     validateSetGameRegister,
     validateFinalTeam
 } = require('../../middleware/gameValidation');
-
 const { validationErrors } = require('../../middleware/validationErrors');
-
 const User = require('../../models/User');
 const Game = require('../../models/Game');
 
@@ -23,25 +21,28 @@ const Game = require('../../models/Game');
 router.post('/createGame', [auth, validateCreateGame, validationErrors], async (req, res) => {
     try {
         const { gameDate, gameName } = req.body;
-        await Game.create({ gameDate, gameName });
 
         const user = await User.findById(req.user.id).select('-password');
-        if (!user) {
-            return res.json({ msg: 'User not found. Please ensure active user is logged in' });
+
+        if (!user.admin) {
+            return res
+                .status(403)
+                .json({ success: false, status: 403, errors: [{ msg: 'User not authorised. Please login with authorised user' }] });
         }
 
-        if (user.email === process.env.adminEmail) {
-            return res.json({
-                msg: 'The following game has been created:',
-                gameDate,
-                gameName
-            });
-        }
-
-        return res.status(401).json({ msg: 'Your user is not authorized to create a new match day' });
+        await Game.create({ gameDate, gameName });
+        return res.status(200).json({
+            success: true,
+            status: 200,
+            msg: 'The following game has been created:',
+            gameDate,
+            gameName
+        });
     } catch (err) {
         console.error(err);
-        return res.status(500).send({ msg: 'Server Error. Unhandled error at api route /games/creategame' });
+        return res
+            .status(500)
+            .send({ success: false, status: 500, errors: [{ msg: 'Server Error. Unhandled error at api route /games/creategame' }] });
     }
 });
 
@@ -55,32 +56,31 @@ router.delete('/deleteGame/:id', [auth, validateDeleteGame, validationErrors], a
 
         const gameDetails = await Game.findById(gameId);
         if (!gameDetails) {
-            return res.json({ msg: 'gameDetails not found. Please provide valid objectId for the game.' });
+            return res.status(400).json({
+                success: false,
+                status: 400,
+                errors: [{ msg: 'Game Details not found. Please provide valid objectId for the game.' }]
+            });
         }
 
         const user = await User.findById(req.user.id).select('-password').select('-date');
-        if (!user) {
-            return res.json({ msg: 'User not found. Please ensure active user is logged in' });
+        if (!user.admin) {
+            return res
+                .status(403)
+                .json({ success: false, status: 403, errors: [{ msg: 'User not authorised. Please login with authorised user' }] });
         }
 
-        if (!user.email === process.env.adminEmail) {
-            return res.status(401).json({ msg: 'User not authorised' });
-        }
-
-        if (user.email === process.env.adminEmail) {
-            if (user.admin) {
-                await Game.findByIdAndRemove(gameId);
-                return res.json({
-                    msg: 'The following game has been deleted:',
-                    gameName: gameDetails.gameName,
-                    gameDate: gameDetails.gameDate
-                });
-            }
-        }
-        return res.status(401).json({ msg: 'Unable to delete game' });
+        await Game.findByIdAndRemove(gameId);
+        return res.json({
+            msg: 'The following game has been deleted:',
+            gameName: gameDetails.gameName,
+            gameDate: gameDetails.gameDate
+        });
     } catch (err) {
         console.error(err);
-        res.status(500).send('Server Error. Unhandled error at api route /games/deletegame');
+        return res
+            .status(500)
+            .send({ success: false, status: 500, errors: [{ msg: 'Server Error. Unhandled error at api route /games/deleteGame' }] });
     }
 });
 
@@ -93,25 +93,29 @@ router.get('/recentGames', auth, async (req, res) => {
         let last14Days = new Date();
         let forward1Year = new Date(Date.now() + 3.156e10);
         last14Days.setDate(last14Days.getDate() - 15);
-        const gameDetails = await Game.find({ gameDate: { $gte: last14Days, $lte: forward1Year } }).sort('-gameDate');
 
-        if (!gameDetails) {
-            return res.json({ msg: 'gameDetails not found.' });
+        const recentGames = await Game.find({ gameDate: { $gte: last14Days, $lte: forward1Year } }).sort('-gameDate');
+        if (!recentGames) {
+            return res.status(400).json({
+                success: false,
+                status: 400,
+                errors: [{ msg: 'Game Details not found. Please provide valid objectId for the game.' }]
+            });
         }
 
         const user = await User.findById(req.user.id).select('-password').select('-date');
         if (!user) {
-            return res.json({ msg: 'User not found. Please ensure active user is logged in' });
+            return res
+                .status(403)
+                .json({ success: false, status: 403, errors: [{ msg: 'User not authorised. Please login with authorised user' }] });
         }
 
-        if (user && gameDetails) {
-            return res.json(gameDetails);
-        }
-
-        return res.status(500).json({ msg: 'Unable to retrieve game at api route /games/recentgames' });
+        return res.json({ success: false, status: 200, recentGames });
     } catch (err) {
         console.error(err);
-        res.status(500).send('Server Error. Unhandled error at api route /games/recentgames');
+        return res
+            .status(500)
+            .send({ success: false, status: 500, errors: [{ msg: 'Server Error. Unhandled error at api route /games/recentgames' }] });
     }
 });
 
@@ -119,32 +123,33 @@ router.get('/recentGames', auth, async (req, res) => {
 // @ route          GET api/games/gameavailibility
 // @ description    Get game availablility
 // @ access         Private
+
 router.post('/gameAvailibility', [auth, validateGameAvailability, validationErrors], async (req, res) => {
     try {
         const gameId = await req.body.gameId;
 
         const gameDetails = await Game.findById(gameId);
         if (!gameDetails) {
-            return res.json({ msg: 'gameDetails not found. Please provide valid objectId for the game.' });
+            return res.status(400).json({
+                success: false,
+                status: 400,
+                errors: [{ msg: 'Game Details not found. Please provide valid objectId for the game.' }]
+            });
         }
 
         const user = await User.findById(req.user.id).select('-password').select('-date');
-        if (!user) {
-            return res.json({ msg: 'User not found. Please ensure active user is logged in' });
-        }
-
-        if (user.admin) {
-            return res.json(gameDetails);
-        }
-
         if (!user.admin) {
-            return res.status(401).json({ msg: 'User not authorised' });
+            return res
+                .status(403)
+                .json({ success: false, status: 403, errors: [{ msg: 'User not authorised. Please login with authorised user' }] });
         }
 
-        return res.status(500).json({ msg: 'Unable to retrieve game at api route /games/gameavailibility' });
+        return res.json({ success: false, status: 200, gameDetails });
     } catch (err) {
         console.error(err);
-        res.status(500).send('Server Error. Unhandled error at api route /games/gameavailibility');
+        return res
+            .status(500)
+            .send({ success: false, status: 500, errors: [{ msg: 'Server Error. Unhandled error at api route /games/gameavailibility' }] });
     }
 });
 
@@ -154,34 +159,33 @@ router.post('/gameAvailibility', [auth, validateGameAvailability, validationErro
 // @ access         Private
 router.post('/setGameRegister', [auth, validateSetGameRegister, validationErrors], async (req, res) => {
     try {
-        const gameId = await req.body.gameId;
-        const gameClosed = await req.body.gameClosed;
+        const { gameId, gameClosed } = req.body;
 
         const gameDetails = await Game.findById(gameId);
         if (!gameDetails) {
-            return res.json({ msg: 'gameDetails not found. Please provide valid objectId for the game.' });
+            return res.status(400).json({
+                success: false,
+                status: 400,
+                errors: [{ msg: 'Game Details not found. Please provide valid objectId for the game.' }]
+            });
         }
 
         const user = await User.findById(req.user.id).select('-password').select('-date');
-        if (!user) {
-            return res.json({ msg: 'User not found. Please ensure active user is logged in' });
+        if (!user.admin) {
+            return res
+                .status(403)
+                .json({ success: false, status: 403, errors: [{ msg: 'User not authorised. Please login with authorised user' }] });
         }
 
-        if (user.email === process.env.adminEmail) {
-            const finalTeam = gameDetails.playersAvailable;
-            await Game.findByIdAndUpdate(gameId, { $set: { gameClosed: gameClosed, finalTeam: finalTeam } });
-            const closedGame = await Game.findById(gameId);
-            return res.json(closedGame);
-        }
-
-        if (!user.email === process.env.adminEmail) {
-            return res.status(401).json({ msg: 'User not authorised' });
-        }
-
-        return res.status(500).json({ msg: 'Unable to retrieve game at api route /games/setgameregister' });
+        const finalTeam = gameDetails.playersAvailable;
+        await Game.findByIdAndUpdate(gameId, { $set: { gameClosed: gameClosed, finalTeam: finalTeam } });
+        const closedGame = await Game.findById(gameId);
+        return res.json({ success: false, status: 200, closedGame });
     } catch (err) {
         console.error(err);
-        res.status(500).send('Server Error. Unhandled error at api route /games/setgameregister');
+        return res
+            .status(500)
+            .send({ success: false, status: 500, errors: [{ msg: 'Server Error. Unhandled error at api route /games/setgameregister' }] });
     }
 });
 
@@ -191,38 +195,37 @@ router.post('/setGameRegister', [auth, validateSetGameRegister, validationErrors
 // @ access         Private
 router.post('/updateFinalTeam', [auth, validateFinalTeam, validationErrors], async (req, res) => {
     try {
-        const gameId = req.body.gameId;
-        const finalTeam = req.body.finalTeam;
+        const { gameId, finalTeam } = req.body;
 
         const gameDetails = await Game.findById(gameId);
         if (!gameDetails) {
-            return res.json({ msg: 'gameDetails not found. Please provide valid objectId for the game.' });
+            return res.status(400).json({
+                success: false,
+                status: 400,
+                errors: [{ msg: 'Game Details not found. Please provide valid objectId for the game.' }]
+            });
         }
 
         const user = await User.findById(req.user.id).select('-password').select('-date');
-        if (!user) {
-            return res.json({ msg: 'User not found. Please ensure active user is logged in' });
-        }
-
         if (!user.admin) {
-            return res.status(401).json({ msg: 'User not authorised' });
+            return res
+                .status(403)
+                .json({ success: false, status: 403, errors: [{ msg: 'User not authorised. Please login with authorised user' }] });
         }
 
-        if (user.admin) {
-            if (user.admin) {
-                await Game.findByIdAndUpdate(gameId, { $set: { finalTeam: finalTeam } });
-                return res.json({
-                    msg: 'The final Team has been updated with the data below:',
-                    gameId: gameId,
-                    finalTeam: finalTeam
-                });
-            }
-        }
-
-        return res.status(500).json({ msg: 'Unable to retrieve game at api route /games/gameavailibility' });
+        await Game.findByIdAndUpdate(gameId, { $set: { finalTeam: finalTeam } });
+        return res.status(200).json({
+            success: false,
+            status: 200,
+            msg: 'The final Team has been updated with the data below:',
+            gameId: gameId,
+            finalTeam: finalTeam
+        });
     } catch (err) {
         console.error(err);
-        res.status(500).send('Server Error. Unhandled error at api route /games/gameavailibility');
+        return res
+            .status(500)
+            .send({ success: false, status: 500, errors: [{ msg: 'Server Error. Unhandled error at api route /games/gameavailibility' }] });
     }
 });
 
