@@ -8,6 +8,7 @@ const { check, validationResult } = require('express-validator');
 const User = require('../../models/User');
 const { off } = require('../../models/User');
 
+//---------------------------------------------------------------------
 // @ route          Get api/auth
 // @ description    Get authorised user
 // @ access         Public
@@ -21,6 +22,7 @@ router.get('/', auth, async (req, res) => {
     }
 });
 
+//---------------------------------------------------------------------
 // @ route          POST api/auth
 // @ description    Authenticate User & get token
 // @ access         Public
