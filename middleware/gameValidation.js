@@ -2,8 +2,8 @@ const { check } = require('express-validator');
 const mongoose = require('mongoose');
 
 exports.validateGameAvailability = [
-    check('gameId').not().isEmpty().withMessage('Error. Game not found! Please proivide valid game id.'),
-    check('gameId')
+    check('id').not().isEmpty().withMessage('Error. Game not found! Please proivide valid game id.'),
+    check('id')
         .custom((value, { req }) => {
             return mongoose.Types.ObjectId.isValid(value) === true;
         })

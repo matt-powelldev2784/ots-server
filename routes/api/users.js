@@ -1,58 +1,46 @@
 const express = require('express');
 const router = express.Router();
-const { check, validationResult } = require('express-validator');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-
 const User = require('../../models/User');
+const { validateRegisterUser } = require('../../middleware/userValidation');
+const { validationErrors } = require('../../middleware/validationErrors');
 
+//---------------------------------------------------------------------
 // @ route          POST api/users
 // @ description    Register user
 // @ access         Public
-router.post(
-    '/',
-    [
-        check('name', 'Name is required').not().isEmpty(),
-        check('email', 'Please include a valid email').isEmail(),
-        check('password', 'Please enter a password with 6 or more characters').isLength({ min: 6 })
-    ],
-    async (req, res) => {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
+router.post('/', [validateRegisterUser, validationErrors], async (req, res) => {
+    const { name, email, password } = req.body;
+
+    try {
+        const userExists = await User.findOne({ email });
+        if (userExists) {
+            return res.status(400).json({ success: false, status: 400, errors: [{ msg: 'User already exists.' }] });
         }
 
-        const { name, email, password } = req.body;
+        const user = new User({ name, email, password });
 
-        try {
-            //See if user exists
-            let user = await User.findOne({ email });
+        //Encrypt Password
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(password, salt);
 
-            if (user) {
-                return res.status(400).json({ errors: [{ msg: 'User already exists.' }] });
+        await user.save();
+
+        //Return jsonwebtoken
+        const payload = { user: { id: user.id } };
+        jwt.sign(payload, process.env.jwtSecret, { expiresIn: 360000 }, (err, token) => {
+            if (err) {
+                throw err;
             }
-
-            user = new User({ name, email, password });
-
-            //Encrypt Password
-            const salt = await bcrypt.genSalt(10);
-            user.password = await bcrypt.hash(password, salt);
-
-            await user.save();
-
-            //Return jsonwebtoken
-            const payload = { user: { id: user.id } };
-            jwt.sign(payload, process.env.jwtSecret, { expiresIn: 360000 }, (err, token) => {
-                if (err) {
-                    throw err;
-                }
-                res.json({ token });
-            });
-        } catch (err) {
-            console.error(err.message);
-            res.status(500).send('Server error');
-        }
+            res.status(201).json({ success: true, status: 201, token });
+        });
+    } catch (err) {
+        console.error(err.message);
+        return res
+            .status(500)
+            .send({ success: false, status: 500, errors: [{ msg: 'Server Error. Unhandled error at api route /users' }] });
     }
-);
+});
 
 module.exports = router;
