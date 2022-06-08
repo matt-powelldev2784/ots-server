@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const CreateGameSchema = new mongoose.Schema({
+const GameSchema = new mongoose.Schema({
     gameDate: {
         type: Date,
         required: true
@@ -23,4 +23,4 @@ const CreateGameSchema = new mongoose.Schema({
     }
 });
 
-module.exports = CreateGame = mongoose.model('game', CreateGameSchema);
+module.exports = Game = mongoose.model('game', GameSchema);
