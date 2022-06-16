@@ -6,7 +6,6 @@ const path = require('path');
 const app = express();
 connectDB();
 
-//Init Middleware
 app.use(express.json({ extended: false }));
 
 app.use(
@@ -15,13 +14,21 @@ app.use(
     })
 );
 
-//Define Routes
 app.use('/api/users', require('./routes/api/users'));
 app.use('/api/auth', require('./routes/api/auth'));
 app.use('/api/profile', require('./routes/api/profile'));
 app.use('/api/games', require('./routes/api/games'));
 app.use('/api/player', require('./routes/api/player'));
 app.use('/api/test', require('./routes/api/test'));
+
+app.use((err, req, res, next) => {
+    console.log(err);
+    res.status(err.status || 500).json({
+        success: false,
+        status: err.status || 500,
+        errors: [{ msg: err.message || 'Server Error' }]
+    });
+});
 
 app.use(express.static(path.join(__dirname, '../client/build')));
 
