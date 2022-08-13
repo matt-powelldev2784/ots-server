@@ -5,18 +5,17 @@
     "insertPragma": false,
     "jsxBracketSameLine": false,
     "jsxSingleQuote": false,
-    "printWidth": 140,
+    "printWidth": 110,
     "proseWrap": "preserve",
     "quoteProps": "as-needed",
     "requirePragma": false,
-    "semi": true,
+    "semi": false,
     "singleQuote": true,
     "tabWidth": 4,
     "trailingComma": "none",
     "useTabs": false,
     "vueIndentScriptAndStyle": false,
     "rangeStart": 0,
-    "emmet.includeLanguages": {
-        "javascript": "javascriptreact"
-    }
+    "singleAttributePerLine": true,
+    "emmet.includeLanguages": { "javascript": "javascriptreact" }
 }
