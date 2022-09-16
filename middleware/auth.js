@@ -1,20 +1,21 @@
-const jwt = require('jsonwebtoken');
+const jwt = require('jsonwebtoken')
+const apiError = require('../controllers/apiError')
 
 module.exports = function (req, res, next) {
     //get token from header
-    const token = req.header('x-auth-token');
+    const token = req.header('x-auth-token')
 
     //Check if not token
     if (!token) {
-        return res.status(401).json({ errors: [{ msg: ' No token authorization denied' }] });
+        return new apiError('No token authorization denied', 401)
     }
 
     //Verify Token
     try {
-        const decoded = jwt.verify(token, process.env.jwtSecret);
-        req.user = decoded.user;
-        next();
+        const decoded = jwt.verify(token, process.env.jwtSecret)
+        req.user = decoded.user
+        next()
     } catch (err) {
-        return res.status(401).json({ errors: [{ msg: 'Server Error. Token is not valid. Please return to homepage and login' }] });
+        return new apiError('Server Error. Token is not valid', 401)
     }
-};
+}
