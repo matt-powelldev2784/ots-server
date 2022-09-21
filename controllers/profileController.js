@@ -7,16 +7,18 @@ const res = require('express/lib/response')
 const apiError = require('./apiError')
 const catchAsyncErrors = require('./catchAsyncErrors')
 
-exports.currentProfile = catchAsyncErrors(async (req, res) => {
-    const profile = await Profile.findOne({ user: req.user.id }).populate('user', ['name', 'email'])
-    if (!profile) {
-        throw new apiError('Profile not found', 400)
-    }
+exports.newProfile = catchAsyncErrors(async (req, res) => {
+    const { defaultTeam, position } = req.body
+    const profileData = { user: req.user.id, defaultTeam, position }
 
-    return res.status(200).json({ success: true, status: 200, profile })
+    const newProfile = await new Profile(profileData)
+    await newProfile.save()
+
+    const profile = await Profile.findOne({ user: req.user.id }).populate('user', ['name', 'email'])
+    return res.status(201).json({ success: true, status: 200, profile })
 })
 
-exports.profile = catchAsyncErrors(async (req, res) => {
+exports.updateProfile = catchAsyncErrors(async (req, res) => {
     const user = await Profile.findOne({ user: req.user.id })
 
     if (user) {
@@ -27,10 +29,16 @@ exports.profile = catchAsyncErrors(async (req, res) => {
         const updatedProfile = await Profile.findOne({ user: req.user.id }).populate('user', ['name', 'email'])
         return res.status(200).json({ success: true, status: 200, updatedProfile })
     }
+})
 
-    const newProfile = new Profile(profileData)
-    await newProfile.save()
-    return res.status(201).json({ success: true, status: 200, newProfile })
+exports.currentProfile = catchAsyncErrors(async (req, res) => {
+    const profile = await Profile.findOne({ user: req.user.id }).populate('user', ['name', 'email'])
+
+    if (!profile) {
+        throw new apiError('Profile not found', 400)
+    }
+
+    return res.status(200).json({ success: true, status: 200, profile })
 })
 
 exports.allProfiles = catchAsyncErrors(async (req, res) => {
