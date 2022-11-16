@@ -16,6 +16,6 @@
     "useTabs": false,
     "vueIndentScriptAndStyle": false,
     "rangeStart": 0,
-    "singleAttributePerLine": true,
+    "singleAttributePerLine": false,
     "emmet.includeLanguages": { "javascript": "javascriptreact" }
 }
