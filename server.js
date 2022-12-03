@@ -10,7 +10,8 @@ app.use(express.json({ extended: false }))
 
 app.use(
     cors({
-        credentials: true
+        credentials: true,
+        origin: true
     })
 )
 
