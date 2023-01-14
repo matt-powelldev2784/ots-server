@@ -8,18 +8,15 @@ connectDB()
 
 app.use(express.json({ extended: false }))
 
-app.all('/*', function (req, res, next) {
-    res.header('Access-Control-Allow-Origin', '*')
-    res.header('Access-Control-Allow-Headers', '*')
-    next()
-})
-
 // app.use(
 //     cors({
 //         credentials: true,
 //         origin: true
 //     })
-// )
+// )]
+
+app.use(cors())
+app.options('*', cors())
 
 app.use('/api/users', require('./routes/api/users'))
 app.use('/api/auth', require('./routes/api/auth'))
